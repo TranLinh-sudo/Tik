@@ -1,6 +1,6 @@
 --[[ CẤU HÌNH ]]
 -- Dán link MỚI NHẤT của bạn vào đây (Nhớ đuôi /api/update)
-local SERVER_URL = "https://a929dec0e29360.lhr.life" 
+local SERVER_URL = "https://c0c5f5180cb349.lhr.life/api/update" 
 
 -----------------------------------------------------------
 -- SCRIPT THEO DÕI V3 (CÓ GIAO DIỆN BÁO LỖI)
