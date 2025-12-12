@@ -1,0 +1,75 @@
+--[[ 
+    CẤU HÌNH KẾT NỐI
+    Đây là link Termux của bạn (Đã điền sẵn)
+]]
+local SERVER_URL = "https://happy-knives-cut.loca.lt/api/update" 
+
+-- Danh sách trái trên 1 Triệu Beli
+local RICH_FRUITS = {
+    ["Quake"] = true, ["Buddha"] = true, ["Love"] = true, ["Spider"] = true, 
+    ["Sound"] = true, ["Phoenix"] = true, ["Portal"] = true, ["Rumble"] = true, 
+    ["Pain"] = true, ["Blizzard"] = true, ["Gravity"] = true, ["Mammoth"] = true, 
+    ["T-Rex"] = true, ["Dough"] = true, ["Shadow"] = true, ["Venom"] = true, 
+    ["Control"] = true, ["Spirit"] = true, ["Dragon"] = true, ["Leopard"] = true, 
+    ["Kitsune"] = true, ["Yeti"] = true, ["Gas"] = true
+}
+
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local request = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request) or request
+
+-- Hàm lọc trái xịn trong rương
+local function getRichInventory()
+    local rareList = {}
+    local success, result = pcall(function() 
+        return game:GetService("ReplicatedStorage").Remotes["CommF_"]:InvokeServer("getInventory")
+    end)
+
+    if success and result then
+        for _, item in pairs(result) do
+            if item.Type == "Blox Fruit" then
+                local cleanName = string.match(item.Name, "^(.-)-") or item.Name
+                if RICH_FRUITS[cleanName] then
+                    table.insert(rareList, cleanName)
+                end
+            end
+        end
+    end
+    return table.concat(rareList, ", ")
+end
+
+-- Vòng lặp gửi tin (5 giây/lần)
+spawn(function()
+    while task.wait(5) do 
+        pcall(function()
+            local dataFolder = LocalPlayer:FindFirstChild("Data")
+            if dataFolder then
+                local payload = {
+                    id = LocalPlayer.Name,
+                    displayName = LocalPlayer.DisplayName,
+                    data = {
+                        level = dataFolder:WaitForChild("Level").Value,
+                        beli = dataFolder:WaitForChild("Beli").Value,
+                        fragments = dataFolder:WaitForChild("Fragments").Value,
+                        inventory = getRichInventory()
+                    }
+                }
+
+                request({
+                    Url = SERVER_URL,
+                    Method = "POST",
+                    Headers = { ["Content-Type"] = "application/json" },
+                    Body = HttpService:JSONEncode(payload)
+                })
+                -- print("Đã gửi tin về Server!") -- Bỏ comment nếu muốn test
+            end
+        end)
+    end
+end)
+
+game.StarterGui:SetCore("SendNotification", {
+    Title = "Blox Manager",
+    Text = "Đã kết nối thành công!",
+    Duration = 5
+})
