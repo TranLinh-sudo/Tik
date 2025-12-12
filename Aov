@@ -2,7 +2,7 @@
     CẤU HÌNH KẾT NỐI
     Đây là link Termux của bạn (Đã điền sẵn)
 ]]
-local SERVER_URL = "https://happy-knives-cut.loca.lt/api/update" 
+local SERVER_URL = "https://f7aa8cd3622c25.lhr.life/api/update" 
 
 -- Danh sách trái trên 1 Triệu Beli
 local RICH_FRUITS = {
