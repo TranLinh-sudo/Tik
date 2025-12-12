@@ -1,58 +1,61 @@
 --[[ 
-    CẤU HÌNH KẾT NỐI
-    Đây là link Termux của bạn (Đã điền sẵn)
+    CẤU HÌNH LIÊN KẾT
+    Thay link Server của bạn vào đây (Nhớ đuôi /api/update)
 ]]
 local SERVER_URL = "https://c0c5f5180cb349.lhr.life/api/update" 
 
--- Danh sách trái trên 1 Triệu Beli
-local RICH_FRUITS = {
-    ["Quake"] = true, ["Buddha"] = true, ["Love"] = true, ["Spider"] = true, 
-    ["Sound"] = true, ["Phoenix"] = true, ["Portal"] = true, ["Rumble"] = true, 
-    ["Pain"] = true, ["Blizzard"] = true, ["Gravity"] = true, ["Mammoth"] = true, 
-    ["T-Rex"] = true, ["Dough"] = true, ["Shadow"] = true, ["Venom"] = true, 
-    ["Control"] = true, ["Spirit"] = true, ["Dragon"] = true, ["Tiger"] = true, 
-    ["Kitsune"] = true, ["Yeti"] = true, ["Gas"] = true
-}
+-------------------------------------------------------------
+-- CODE CHẠY NGẦM (KHÔNG ĐỤNG CHẠM AUTO FARM)
+-------------------------------------------------------------
+task.spawn(function() -- Lệnh này giúp script chạy song song
+    local HttpService = game:GetService("HttpService")
+    local Players = game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer
+    
+    -- Đợi game load xong hẳn mới chạy để tránh lỗi
+    repeat task.wait() until game:IsLoaded() and LocalPlayer and LocalPlayer:FindFirstChild("Data")
 
-local HttpService = game:GetService("HttpService")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local request = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request) or request
+    -- Hàm gửi HTTP an toàn
+    local request = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request) or request
+    if not request then return end -- Nếu Executor dỏm quá thì thôi
 
--- Hàm lọc trái xịn trong rương
-local function getRichInventory()
-    local rareList = {}
-    local success, result = pcall(function() 
-        return game:GetService("ReplicatedStorage").Remotes["CommF_"]:InvokeServer("getInventory")
-    end)
+    -- Danh sách trái xịn cần báo cáo
+    local RICH_FRUITS = {
+        ["Kitsune"]=true, ["Dragon"]=true, ["Leopard"]=true, ["Dough"]=true, 
+        ["T-Rex"]=true, ["Mammoth"]=true, ["Spirit"]=true, ["Venom"]=true, 
+        ["Control"]=true, ["Shadow"]=true, ["Blizzard"]=true, ["Pain"]=true, 
+        ["Rumble"]=true, ["Portal"]=true, ["Phoenix"]=true, ["Sound"]=true, 
+        ["Spider"]=true, ["Love"]=true, ["Buddha"]=true, ["Quake"]=true
+    }
 
-    if success and result then
-        for _, item in pairs(result) do
-            if item.Type == "Blox Fruit" then
-                local cleanName = string.match(item.Name, "^(.-)-") or item.Name
-                if RICH_FRUITS[cleanName] then
-                    table.insert(rareList, cleanName)
+    local function getInventory()
+        local list = {}
+        pcall(function()
+            local raw = game:GetService("ReplicatedStorage").Remotes["CommF_"]:InvokeServer("getInventory")
+            for _, v in pairs(raw) do
+                if v.Type == "Blox Fruit" then
+                    local name = string.match(v.Name, "^(.-)-") or v.Name
+                    if RICH_FRUITS[name] then table.insert(list, name) end
                 end
             end
-        end
+        end)
+        return table.concat(list, ", ")
     end
-    return table.concat(rareList, ", ")
-end
 
--- Vòng lặp gửi tin (5 giây/lần)
-spawn(function()
-    while task.wait(5) do 
+    -- Vòng lặp gửi tin (5 giây/lần)
+    while true do
         pcall(function()
-            local dataFolder = LocalPlayer:FindFirstChild("Data")
-            if dataFolder then
+            local data = LocalPlayer:FindFirstChild("Data")
+            if data then
                 local payload = {
-                    id = LocalPlayer.Name,
-                    displayName = LocalPlayer.DisplayName,
+                    -- ID Duy nhất để phân biệt nhiều acc (Dùng Tên đăng nhập)
+                    id = LocalPlayer.Name, 
+                    displayName = LocalPlayer.DisplayName .. " (Lv." .. data.Level.Value .. ")",
                     data = {
-                        level = dataFolder:WaitForChild("Level").Value,
-                        beli = dataFolder:WaitForChild("Beli").Value,
-                        fragments = dataFolder:WaitForChild("Fragments").Value,
-                        inventory = getRichInventory()
+                        level = data.Level.Value,
+                        beli = data.Beli.Value,
+                        fragments = data.Fragments.Value,
+                        inventory = getInventory()
                     }
                 }
 
@@ -62,14 +65,15 @@ spawn(function()
                     Headers = { ["Content-Type"] = "application/json" },
                     Body = HttpService:JSONEncode(payload)
                 })
-                -- print("Đã gửi tin về Server!") -- Bỏ comment nếu muốn test
             end
         end)
+        task.wait(5) -- Nghỉ 5 giây rồi gửi tiếp
     end
 end)
 
+-- THÔNG BÁO NHẸ
 game.StarterGui:SetCore("SendNotification", {
-    Title = "Blox Manager",
-    Text = "Đã kết nối thành công!",
-    Duration = 5
+    Title = "System",
+    Text = "Đã bật theo dõi ngầm!",
+    Duration = 3
 })
