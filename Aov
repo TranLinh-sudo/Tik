@@ -1,79 +1,100 @@
---[[ 
-    CẤU HÌNH LIÊN KẾT
-    Thay link Server của bạn vào đây (Nhớ đuôi /api/update)
-]]
+--[[ CẤU HÌNH ]]
+-- Dán link MỚI NHẤT của bạn vào đây (Nhớ đuôi /api/update)
 local SERVER_URL = "https://c0c5f5180cb349.lhr.life/api/update" 
 
--------------------------------------------------------------
--- CODE CHẠY NGẦM (KHÔNG ĐỤNG CHẠM AUTO FARM)
--------------------------------------------------------------
-task.spawn(function() -- Lệnh này giúp script chạy song song
-    local HttpService = game:GetService("HttpService")
-    local Players = game:GetService("Players")
-    local LocalPlayer = Players.LocalPlayer
-    
-    -- Đợi game load xong hẳn mới chạy để tránh lỗi
-    repeat task.wait() until game:IsLoaded() and LocalPlayer and LocalPlayer:FindFirstChild("Data")
+-----------------------------------------------------------
+-- SCRIPT THEO DÕI V3 (CÓ GIAO DIỆN BÁO LỖI)
+-----------------------------------------------------------
+local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
+local HttpService = game:GetService("HttpService")
+local LocalPlayer = Players.LocalPlayer
 
-    -- Hàm gửi HTTP an toàn
-    local request = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request) or request
-    if not request then return end -- Nếu Executor dỏm quá thì thôi
+-- 1. TẠO GIAO DIỆN NHỎ GÓC TRÊN ĐỂ BIẾT SCRIPT CÒN SỐNG KHÔNG
+local ScreenGui = Instance.new("ScreenGui")
+local StatusLabel = Instance.new("TextLabel")
 
-    -- Danh sách trái xịn cần báo cáo
-    local RICH_FRUITS = {
-        ["Kitsune"]=true, ["Dragon"]=true, ["Leopard"]=true, ["Dough"]=true, 
-        ["T-Rex"]=true, ["Mammoth"]=true, ["Spirit"]=true, ["Venom"]=true, 
-        ["Control"]=true, ["Shadow"]=true, ["Blizzard"]=true, ["Pain"]=true, 
-        ["Rumble"]=true, ["Portal"]=true, ["Phoenix"]=true, ["Sound"]=true, 
-        ["Spider"]=true, ["Love"]=true, ["Buddha"]=true, ["Quake"]=true
-    }
+ScreenGui.Name = "BloxManagerGUI"
+ScreenGui.Parent = CoreGui -- Nhét vào CoreGui để Tool Farm khó xóa hơn
+StatusLabel.Parent = ScreenGui
+StatusLabel.Size = UDim2.new(0, 200, 0, 30)
+StatusLabel.Position = UDim2.new(0.5, -100, 0, 10) -- Ở giữa trên cùng
+StatusLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+StatusLabel.Text = "Blox Manager: Đang khởi động..."
+StatusLabel.BackgroundTransparency = 0.5
 
-    local function getInventory()
-        local list = {}
-        pcall(function()
-            local raw = game:GetService("ReplicatedStorage").Remotes["CommF_"]:InvokeServer("getInventory")
-            for _, v in pairs(raw) do
-                if v.Type == "Blox Fruit" then
-                    local name = string.match(v.Name, "^(.-)-") or v.Name
-                    if RICH_FRUITS[name] then table.insert(list, name) end
+-- Hàm gửi HTTP
+local request = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request) or request
+
+local function getInventory()
+    local list = {}
+    pcall(function()
+        local raw = game:GetService("ReplicatedStorage").Remotes["CommF_"]:InvokeServer("getInventory")
+        for _, v in pairs(raw) do
+            if v.Type == "Blox Fruit" then
+                -- Lọc tên trái xịn
+                local name = string.match(v.Name, "^(.-)-") or v.Name
+                if table.find({"Kitsune","Dragon","Leopard","Dough","T-Rex","Spirit","Venom","Control","Mammoth","Shadow","Buddha"}, name) then
+                    table.insert(list, name)
                 end
             end
-        end)
-        return table.concat(list, ", ")
-    end
+        end
+    end)
+    return table.concat(list, ", ")
+end
 
-    -- Vòng lặp gửi tin (5 giây/lần)
+-- VÒNG LẶP CHÍNH
+task.spawn(function()
     while true do
-        pcall(function()
-            local data = LocalPlayer:FindFirstChild("Data")
-            if data then
-                local payload = {
-                    -- ID Duy nhất để phân biệt nhiều acc (Dùng Tên đăng nhập)
-                    id = LocalPlayer.Name, 
-                    displayName = LocalPlayer.DisplayName .. " (Lv." .. data.Level.Value .. ")",
-                    data = {
-                        level = data.Level.Value,
-                        beli = data.Beli.Value,
-                        fragments = data.Fragments.Value,
-                        inventory = getInventory()
-                    }
-                }
+        task.wait(5) -- 5 giây gửi 1 lần
+        
+        -- Nếu giao diện bị Tool Farm xóa -> Tự tạo lại
+        if not CoreGui:FindFirstChild("BloxManagerGUI") then
+            ScreenGui.Parent = CoreGui
+        end
 
-                request({
-                    Url = SERVER_URL,
-                    Method = "POST",
-                    Headers = { ["Content-Type"] = "application/json" },
-                    Body = HttpService:JSONEncode(payload)
-                })
+        local success, err = pcall(function()
+            local data = LocalPlayer:FindFirstChild("Data")
+            if not data then 
+                StatusLabel.Text = "Đang đợi Game load..."
+                return 
+            end
+
+            StatusLabel.Text = "Đang gửi dữ liệu..."
+            StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 0) -- Màu vàng
+
+            local payload = {
+                id = LocalPlayer.Name,
+                displayName = LocalPlayer.DisplayName,
+                data = {
+                    level = data.Level.Value,
+                    beli = data.Beli.Value,
+                    fragments = data.Fragments.Value,
+                    inventory = getInventory()
+                }
+            }
+
+            local response = request({
+                Url = SERVER_URL,
+                Method = "POST",
+                Headers = { ["Content-Type"] = "application/json" },
+                Body = HttpService:JSONEncode(payload)
+            })
+
+            -- Kiểm tra kết quả
+            if response.StatusCode == 200 then
+                StatusLabel.Text = "✅ Đã gửi: " .. os.date("%H:%M:%S")
+                StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 0) -- Màu xanh
+            else
+                StatusLabel.Text = "❌ Lỗi Server: " .. response.StatusCode
+                StatusLabel.TextColor3 = Color3.fromRGB(255, 0, 0) -- Màu đỏ
             end
         end)
-        task.wait(5) -- Nghỉ 5 giây rồi gửi tiếp
+
+        if not success then
+            StatusLabel.Text = "⚠️ Lỗi Script/Mạng!"
+            StatusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+        end
     end
 end)
-
--- THÔNG BÁO NHẸ
-game.StarterGui:SetCore("SendNotification", {
-    Title = "System",
-    Text = "Đã bật theo dõi ngầm!",
-    Duration = 3
-})
