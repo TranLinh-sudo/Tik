@@ -2,7 +2,7 @@
     CẤU HÌNH KẾT NỐI
     Đây là link Termux của bạn (Đã điền sẵn)
 ]]
-local SERVER_URL = "https://f7aa8cd3622c25.lhr.life/api/update" 
+local SERVER_URL = "https://c0c5f5180cb349.lhr.life/api/update" 
 
 -- Danh sách trái trên 1 Triệu Beli
 local RICH_FRUITS = {
@@ -10,7 +10,7 @@ local RICH_FRUITS = {
     ["Sound"] = true, ["Phoenix"] = true, ["Portal"] = true, ["Rumble"] = true, 
     ["Pain"] = true, ["Blizzard"] = true, ["Gravity"] = true, ["Mammoth"] = true, 
     ["T-Rex"] = true, ["Dough"] = true, ["Shadow"] = true, ["Venom"] = true, 
-    ["Control"] = true, ["Spirit"] = true, ["Dragon"] = true, ["Leopard"] = true, 
+    ["Control"] = true, ["Spirit"] = true, ["Dragon"] = true, ["Tiger"] = true, 
     ["Kitsune"] = true, ["Yeti"] = true, ["Gas"] = true
 }
 
