@@ -1,52 +1,25 @@
--------------------------------------------------------------
--- Link của bạn (Giữ nguyên)
-local URL = "https://d1d951b3e92c3b.lhr.life/update" 
--------------------------------------------------------------
-
 local HttpService = game:GetService("HttpService")
-local Players = game:GetService("Players")
-local Client = Players.LocalPlayer
+local URL = "https://d1d951b3e92c3b.lhr.life/update" -- Link của bạn
 
--- Hàm gửi siêu tốc
-local function serverRequest(options)
-    if syn and syn.request then return syn.request(options)
-    elseif http_request then return http_request(options)
-    elseif request then return request(options)
-    else return {StatusCode = 500} end
+game.StarterGui:SetCore("SendNotification", {Title = "Đang gửi thử...", Text = "Check F9 xem kết quả", Duration = 3})
+
+local data = {name="TEST_THANH_CONG", level=999, beli=0, fragment=0, fruits={"Da gui duoc tin"}}
+local json = HttpService:JSONEncode(data)
+
+-- Gửi thử
+local response
+if request then
+    response = request({Url = URL, Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = json})
+elseif http_request then
+    response = http_request({Url = URL, Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = json})
 end
 
-spawn(function()
-    while true do
-        wait(3) -- Gửi 3 giây 1 lần
-        pcall(function()
-            local data = {
-                -- 🔥 QUAN TRỌNG: Đặt cứng tên để Server không nhầm
-                name = "MAY_CLOUD_SO_2", 
-                
-                level = Client.Data.Level.Value,
-                beli = Client.Data.Beli.Value,
-                fragment = Client.Data.Fragments.Value,
-                fruits = {"Test ket noi tu may khac"}
-            }
-            
-            local jsonData = HttpService:JSONEncode(data)
-            
-            -- Gửi đi và in kết quả ra F9
-            local response = serverRequest({
-                Url = URL,
-                Method = "POST",
-                Headers = {["Content-Type"] = "application/json"},
-                Body = jsonData
-            })
-            
-            -- Kiểm tra phản hồi
-            if response.StatusCode == 200 then
-                print("✅ Đã gửi tin thành công: MAY_CLOUD_SO_2")
-            else
-                print("❌ Lỗi Server: " .. tostring(response.StatusCode))
-            end
-        end)
-    end
-end)
-
-game.StarterGui:SetCore("SendNotification", {Title = "Hoạt System", Text = "Đang test MÁY CLOUD SỐ 2", Duration = 5})
+-- In kết quả ra F9
+if response then
+    print("------------------------------------------------")
+    print("TRẠNG THÁI GỬI: " .. tostring(response.StatusCode))
+    print("NỘI DUNG PHẢN HỒI: " .. tostring(response.Body))
+    print("------------------------------------------------")
+else
+    warn("VẪN KHÔNG GỬI ĐƯỢC! (Kiểm tra lại nút Http Request trong Settings)")
+end
