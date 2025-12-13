@@ -1,6 +1,6 @@
 local TERMUX_IP = "192.168.1.60" -- <--- SỬA SỐ NÀY CHO ĐÚNG
 local PORT = "5000"
-local URL = "https://uqwmi-113-191-140-108.a.free.pinggy.link/update"
+local URL = "local URL = "https://d1d951b3e92c3b.lhr.life/update"
 
 -- Hàm gửi thử dữ liệu
 local function TestConnection()
