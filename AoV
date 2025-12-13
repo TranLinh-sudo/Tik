@@ -1,45 +1,52 @@
-local TERMUX_IP = "192.168.1.60" -- <--- SỬA SỐ NÀY CHO ĐÚNG
-local PORT = "5000"
-local URL = "local URL = "https://d1d951b3e92c3b.lhr.life/update"
+-------------------------------------------------------------
+-- Link của bạn (Giữ nguyên)
+local URL = "https://d1d951b3e92c3b.lhr.life/update" 
+-------------------------------------------------------------
 
--- Hàm gửi thử dữ liệu
-local function TestConnection()
-    local HttpService = game:GetService("HttpService")
-    
-    -- Tạo thông báo đang gửi
-    game.StarterGui:SetCore("SendNotification", {
-        Title = "Server Admin",
-        Text = "Đang thử kết nối tới " .. TERMUX_IP,
-        Duration = 3
-    })
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local Client = Players.LocalPlayer
 
-    local data = {name = "Test User", level = 100, beli = 500, fragment = 10, fruits = {"Test Fruit"}}
-    local jsonData = HttpService:JSONEncode(data)
-
-    -- Gửi request
-    local success, response = pcall(function()
-        return request({
-            Url = URL,
-            Method = "POST",
-            Headers = {["Content-Type"] = "application/json"},
-            Body = jsonData
-        })
-    end)
-
-    if success then
-        game.StarterGui:SetCore("SendNotification", {
-            Title = "THÀNH CÔNG! ✅",
-            Text = "Đã gửi được tin tới Server!",
-            Duration = 10
-        })
-    else
-        game.StarterGui:SetCore("SendNotification", {
-            Title = "THẤT BẠI ❌",
-            Text = "Lỗi: Executor không gửi được!",
-            Duration = 10
-        })
-    end
+-- Hàm gửi siêu tốc
+local function serverRequest(options)
+    if syn and syn.request then return syn.request(options)
+    elseif http_request then return http_request(options)
+    elseif request then return request(options)
+    else return {StatusCode = 500} end
 end
 
--- Chạy luôn
-TestConnection()
+spawn(function()
+    while true do
+        wait(3) -- Gửi 3 giây 1 lần
+        pcall(function()
+            local data = {
+                -- 🔥 QUAN TRỌNG: Đặt cứng tên để Server không nhầm
+                name = "MAY_CLOUD_SO_2", 
+                
+                level = Client.Data.Level.Value,
+                beli = Client.Data.Beli.Value,
+                fragment = Client.Data.Fragments.Value,
+                fruits = {"Test ket noi tu may khac"}
+            }
+            
+            local jsonData = HttpService:JSONEncode(data)
+            
+            -- Gửi đi và in kết quả ra F9
+            local response = serverRequest({
+                Url = URL,
+                Method = "POST",
+                Headers = {["Content-Type"] = "application/json"},
+                Body = jsonData
+            })
+            
+            -- Kiểm tra phản hồi
+            if response.StatusCode == 200 then
+                print("✅ Đã gửi tin thành công: MAY_CLOUD_SO_2")
+            else
+                print("❌ Lỗi Server: " .. tostring(response.StatusCode))
+            end
+        end)
+    end
+end)
+
+game.StarterGui:SetCore("SendNotification", {Title = "Hoạt System", Text = "Đang test MÁY CLOUD SỐ 2", Duration = 5})
