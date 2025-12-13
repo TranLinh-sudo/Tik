@@ -1,100 +1,97 @@
---[[ CẤU HÌNH ]]
--- Dán link MỚI NHẤT của bạn vào đây (Nhớ đuôi /api/update)
-local SERVER_URL = "https://77c1a2045beb1f.lhr.life/api/update" 
+-- CẤU HÌNH --
+local TERMUX_IP = "192.168.0.108" -- Đổi thành IP máy chạy Termux của bạn
+local PORT = "5000"
+local URL = "http://" .. TERMUX_IP .. ":" .. PORT .. "/update"
 
------------------------------------------------------------
--- SCRIPT THEO DÕI V3 (CÓ GIAO DIỆN BÁO LỖI)
------------------------------------------------------------
 local Players = game:GetService("Players")
-local CoreGui = game:GetService("CoreGui")
+local Client = Players.LocalPlayer
 local HttpService = game:GetService("HttpService")
-local LocalPlayer = Players.LocalPlayer
 
--- 1. TẠO GIAO DIỆN NHỎ GÓC TRÊN ĐỂ BIẾT SCRIPT CÒN SỐNG KHÔNG
-local ScreenGui = Instance.new("ScreenGui")
-local StatusLabel = Instance.new("TextLabel")
+-- Giá của các trái cây (Ví dụ một số trái phổ biến > 1M, bạn có thể bổ sung)
+local FruitPrices = {
+    ["Rocket"] = 5000, -- Ví dụ trái rẻ
+    ["Quake"] = 1000000,
+    ["Buddha"] = 1200000,
+    ["Phoenix"] = 1800000,
+    ["Rumble"] = 2100000,
+    ["Portal"] = 1900000,
+    ["Dough"] = 2800000,
+    ["Dragon"] = 3500000,
+    ["Leopard"] = 5000000,
+    ["Kitsune"] = 8000000,
+    ["T-Rex"] = 2700000,
+    ["Mammoth"] = 2700000,
+    ["Spirit"] = 2500000,
+    ["Venom"] = 3000000,
+    ["Control"] = 3200000
+    -- Thêm các trái khác vào đây
+}
 
-ScreenGui.Name = "BloxManagerGUI"
-ScreenGui.Parent = CoreGui -- Nhét vào CoreGui để Tool Farm khó xóa hơn
-StatusLabel.Parent = ScreenGui
-StatusLabel.Size = UDim2.new(0, 200, 0, 30)
-StatusLabel.Position = UDim2.new(0.5, -100, 0, 10) -- Ở giữa trên cùng
-StatusLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-StatusLabel.Text = "Blox Manager: Đang khởi động..."
-StatusLabel.BackgroundTransparency = 0.5
-
--- Hàm gửi HTTP
-local request = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request) or request
-
-local function getInventory()
-    local list = {}
-    pcall(function()
-        local raw = game:GetService("ReplicatedStorage").Remotes["CommF_"]:InvokeServer("getInventory")
-        for _, v in pairs(raw) do
-            if v.Type == "Blox Fruit" then
-                -- Lọc tên trái xịn
-                local name = string.match(v.Name, "^(.-)-") or v.Name
-                if table.find({"Kitsune","Dragon","Leopard","Dough","T-Rex","Spirit","Venom","Control","Mammoth","Shadow","Buddha"}, name) then
-                    table.insert(list, name)
+-- Hàm lấy trái cây trong kho (Logic này phụ thuộc vào game update, đây là logic quét Inventory cơ bản)
+-- Lưu ý: Blox Fruits giấu Inventory khá kỹ, thường phải đọc qua Remote hoặc UI.
+-- Đây là giả lập việc đọc từ một Folder dữ liệu thường thấy trong các script Hub.
+function GetHighValueFruits()
+    local highValueFruits = {}
+    
+    -- Cách lấy trái cây: Kiểm tra trong Backpack hoặc UI Stored Items
+    -- Vì mỗi bản update Blox Fruit lại đổi chỗ lưu, nên ta sẽ dùng logic quét tên cơ bản
+    -- Bạn có thể tích hợp script này vào Auto Farm Hub có sẵn chức năng get inventory
+    
+    -- DEMO: Quét trong Backpack (Trái đang cầm)
+    if Client.Backpack then
+        for _, item in pairs(Client.Backpack:GetChildren()) do
+            if item:IsA("Tool") and item.ToolTip == "Blox Fruit" then
+                -- Check giá (Logic đơn giản hóa)
+                local fruitName = item.Name
+                local price = FruitPrices[fruitName] or 0
+                if price >= 1000000 then
+                    table.insert(highValueFruits, fruitName .. " (Đang cầm)")
                 end
             end
         end
-    end)
-    return table.concat(list, ", ")
+    end
+
+    -- Lưu ý: Để lấy toàn bộ trái trong kho (Stored), bạn cần hook vào Remotes của game
+    -- Ví dụ giả định gửi dữ liệu mẫu nếu không hook được:
+    -- table.insert(highValueFruits, "Dough (Giả lập)") 
+    
+    return highValueFruits
 end
 
--- VÒNG LẶP CHÍNH
-task.spawn(function()
-    while true do
-        task.wait(5) -- 5 giây gửi 1 lần
-        
-        -- Nếu giao diện bị Tool Farm xóa -> Tự tạo lại
-        if not CoreGui:FindFirstChild("BloxManagerGUI") then
-            ScreenGui.Parent = CoreGui
-        end
+-- Vòng lặp gửi dữ liệu
+spawn(function()
+    while task.wait(5) do -- Gửi mỗi 5 giây để tránh lag
+        pcall(function()
+            -- Lấy thông tin cơ bản
+            local Level = Client.Data.Level.Value
+            local Beli = Client.Data.Beli.Value
+            local Fragment = Client.Data.Fragments.Value
+            local Fruits = GetHighValueFruits()
 
-        local success, err = pcall(function()
-            local data = LocalPlayer:FindFirstChild("Data")
-            if not data then 
-                StatusLabel.Text = "Đang đợi Game load..."
-                return 
-            end
-
-            StatusLabel.Text = "Đang gửi dữ liệu..."
-            StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 0) -- Màu vàng
-
-            local payload = {
-                id = LocalPlayer.Name,
-                displayName = LocalPlayer.DisplayName,
-                data = {
-                    level = data.Level.Value,
-                    beli = data.Beli.Value,
-                    fragments = data.Fragments.Value,
-                    inventory = getInventory()
-                }
+            -- Tạo bảng dữ liệu JSON
+            local dataToSend = {
+                name = Client.Name,
+                level = Level,
+                beli = Beli,
+                fragment = Fragment,
+                fruits = Fruits
             }
 
+            -- Chuyển sang JSON
+            local jsonData = HttpService:JSONEncode(dataToSend)
+
+            -- Gửi Request
             local response = request({
-                Url = SERVER_URL,
+                Url = URL,
                 Method = "POST",
-                Headers = { ["Content-Type"] = "application/json" },
-                Body = HttpService:JSONEncode(payload)
+                Headers = {
+                    ["Content-Type"] = "application/json"
+                },
+                Body = jsonData
             })
-
-            -- Kiểm tra kết quả
-            if response.StatusCode == 200 then
-                StatusLabel.Text = "✅ Đã gửi: " .. os.date("%H:%M:%S")
-                StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 0) -- Màu xanh
-            else
-                StatusLabel.Text = "❌ Lỗi Server: " .. response.StatusCode
-                StatusLabel.TextColor3 = Color3.fromRGB(255, 0, 0) -- Màu đỏ
-            end
+            
+            -- Debug in ra console (F9)
+            print("Đã gửi dữ liệu về Termux: " .. tostring(response.StatusCode))
         end)
-
-        if not success then
-            StatusLabel.Text = "⚠️ Lỗi Script/Mạng!"
-            StatusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
-        end
     end
 end)
